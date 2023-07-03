@@ -1,0 +1,71 @@
+import discord
+import random
+import asyncio
+import pytz
+from datetime import datetime, time, timedelta
+
+# Задайте токен вашего бота Discord
+TOKEN = 1125323986109214731
+
+# Задайте словарь с ID серверов и ID каналов, в которые вы хотите отправлять сообщения
+# Формат: {server_id: channel_id} Phaver, Galxe
+channel_info = {930833706460004402: 931158504725684265, 824767871183355954: 912252690392838144}
+
+# Задайте текст сообщения, которое вы хотите отправлять
+message_text = 'gm'
+
+# Задайте имя тестового файла для записи результатов отправки сообщений
+test_file_name = 'test_file-gm-bot.txt'
+
+# Определите функцию для отправки сообщения в указанные каналы и записи результатов в тестовый файл
+async def send_message():
+    # Получите текущее время в часовом поясе UTC
+    current_time = datetime.now(pytz.utc)
+
+    # Определите диапазон времени, в котором нужно отправить сообщение
+    start_time = time(hour=9)
+    end_time = time(hour=11)
+
+    # Проверьте, находится ли текущее время в диапазоне времени, в котором нужно отправить сообщение
+    if start_time <= current_time.time() <= end_time:
+        # Отправьте сообщение в каждый указанный канал на каждом сервере
+        for server_id, channel_id in channel_info.items():
+            server = client.get_guild(int(server_id))
+            if server:
+                channel = server.get_channel(int(channel_id))
+                if channel:
+                    try:
+                        await channel.send(message_text)
+                        with open(test_file_name, 'a') as f:
+                            f.write(f"{current_time}: Message sent to {channel_id} on  {server.name} ({server.id})\n")
+                    except:
+                        with open(test_file_name, 'a') as f:
+                            f.write(f"{current_time}: Error sending to {channel_id} on  {server.name} ({server.id})\n")
+                else:
+                    with open(test_file_name, 'a') as f:
+                        f.write(f"{current_time}: Channel ID {channel_id} not found on  {server.name} ({server.id})\n")
+            else:
+                with open(test_file_name, 'a') as f:
+                    f.write(f"{current_time}: Server with ID {server_id} not found\n")
+
+# Создайте объект клиента Discord
+client = discord.Client()
+
+# Обработчик события "on_ready", который будет вызываться после успешного подключения бота к Discord
+@client.event
+async def on_ready():
+    print('Logged in as {0.user}'.format(client))
+
+    # Запускайте функцию отправки сообщения каждый день в случайное время между 9 и 11 утра по UTC
+    while True:
+        # Выберите случайное время в диапазоне между 9 и 11 утра по UTC
+        random_time = datetime.combine(datetime.now(pytz.utc).date(), time(hour=9)) + timedelta(seconds=random.randint(0, 7200))
+        # Рассчитайте количество секунд до выбранного времени
+        delay_seconds = (random_time - datetime.now(pytz.utc)).total_seconds()
+        # Ожидайте до выбранного времени
+        await asyncio.sleep(delay_seconds)
+        # Отправьте сообщение и запишите результаты в тестовый файл
+        await send_message()
+
+# Запустите бота
+client.run(TOKEN)
